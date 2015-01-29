@@ -271,7 +271,6 @@ void XtionGrabber::onInit()
 	m_depthFocalLength = 525.0f * m_depthWidth / 640;
 
 	m_cloudGenerator.init(m_depthWidth, m_depthHeight, m_depthFocalLength);
-	m_filledCloudGenerator.init(1280, 960, 525.0f * 1280 / 640);
 
 	setupRGBInfo();
 	setupDepthInfo();
@@ -445,64 +444,6 @@ void XtionGrabber::read_thread()
 
 	fprintf(stderr, "read thread exit now\n");
 }
-
-// sensor_msgs::ImageConstPtr XtionGrabber::fillDepth()
-// {
-// 	cv_bridge::CvImageConstPtr cv_depth_input = cv_bridge::toCvShare(m_lastDepthImage, "mono16");
-//
-// 	cv::Mat_<uint16_t> cv_depth(960, 1280);
-// 	for(int y = 0; y < cv_depth.rows; ++y)
-// 	{
-// 		for(int x = 0; x < cv_depth.cols; ++x)
-// 		{
-// 			cv_depth(y,x) = cv_depth_input->image.at<uint16_t>(
-// 				y / (cv_depth.rows / cv_depth_input->image.rows),
-// 				x / (cv_depth.cols / cv_depth_input->image.cols)
-// 			);
-// 		}
-// 	}
-//
-// 	cv::Mat_<uint8_t> cv_depth8(cv_depth.size());
-// 	cv::Mat_<uint8_t> mask(cv_depth.size(), (uint8_t)0);
-//
-// 	// Fill invalid depth with cv::inpaint
-// 	for(int y = 0; y < cv_depth.rows; ++y)
-// 	{
-// 		for(int x = 0; x < cv_depth.cols; ++x)
-// 		{
-// 			cv_depth8(y,x) = cv_depth(y,x) / 10;
-//
-// 			if(cv_depth(y, x) == 0)
-// 				mask(y,x) = 1;
-// 		}
-// 	}
-//
-// 	cv::Mat_<uint8_t> inpaintedDepth(cv_depth.size(), cv_depth.type());
-// 	cv::inpaint(cv_depth8, mask, inpaintedDepth, 5.0, cv::INPAINT_TELEA);
-//
-// 	cv_bridge::CvImage filledDepth;
-//
-// 	filledDepth.image = cv::Mat(cv_depth.size(), CV_16UC1);
-// 	filledDepth.encoding = "mono16";
-// 	filledDepth.header = m_lastDepthImage->header;
-//
-// 	for(int y = 0; y < cv_depth.rows; ++y)
-// 	{
-// 		for(int x = 0; x < cv_depth.cols; ++x)
-// 		{
-// 			if(mask(y,x))
-// 				filledDepth.image.at<uint16_t>(y,x) = inpaintedDepth(y,x) * 10;
-// 			else
-// 				filledDepth.image.at<uint16_t>(y,x) = cv_depth(y,x);
-// 		}
-// 	}
-//
-// 	sensor_msgs::ImageConstPtr out = filledDepth.toImageMsg();
-//
-// 	NODELET_ERROR("filled depth image has dim %dx%d", (int)out->width, (int)out->height);
-//
-// 	return out;
-// }
 
 void XtionGrabber::publishPointCloud(const sensor_msgs::ImageConstPtr& depth,
                                      accel::PointCloudGenerator* generator,

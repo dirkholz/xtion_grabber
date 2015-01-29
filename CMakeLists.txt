@@ -38,7 +38,6 @@ add_library(xtion_grabber
 	src/xtion_grabber.cpp
 	src/generate_pointcloud.cpp
 	src/generate_pointcloud.s
-	src/depth_filler.cpp
 )
 target_link_libraries(xtion_grabber
 	${catkin_LIBRARIES}

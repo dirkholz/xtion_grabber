@@ -20,7 +20,6 @@
 
 #include "pool.h"
 #include "generate_pointcloud.h"
-#include "depth_filler.h"
 
 const int NUM_BUFS = 31;
 
@@ -105,7 +104,6 @@ private:
 	sensor_msgs::ImageConstPtr m_lastDepthImage;
 
 	accel::PointCloudGenerator m_cloudGenerator;
-	accel::PointCloudGenerator m_filledCloudGenerator;
 	ros::Publisher m_pub_cloud;
 	utils::Pool<sensor_msgs::PointCloud2>::Ptr m_pointCloudPool;
 

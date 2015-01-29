@@ -107,10 +107,8 @@ private:
 	accel::PointCloudGenerator m_cloudGenerator;
 	accel::PointCloudGenerator m_filledCloudGenerator;
 	ros::Publisher m_pub_cloud;
-	ros::Publisher m_pub_filledCloud;
 	utils::Pool<sensor_msgs::PointCloud2>::Ptr m_pointCloudPool;
 
-	DepthFiller m_depthFiller;
 	void publishPointCloud(const sensor_msgs::ImageConstPtr& depth,
 	                       accel::PointCloudGenerator* generator,
 	                       ros::Publisher* dest);
@@ -119,6 +117,7 @@ private:
 
 	boost::thread m_thread;
 	bool m_shouldExit;
+	std::string m_nodeName;
 };
 
 }

@@ -256,6 +256,7 @@ void XtionGrabber::onInit()
 	nh.param("color_height", m_colorHeight, 1024);
 
 	m_deviceName = getPrivateNodeHandle().getNamespace();
+	m_nodeName = ros::this_node::getName();
 
 	if(!setupColor(colorDevice))
 		throw std::runtime_error("Could not setup color channel");
@@ -275,8 +276,7 @@ void XtionGrabber::onInit()
 	setupRGBInfo();
 	setupDepthInfo();
 
-	m_pub_cloud = nh.advertise<sensor_msgs::PointCloud2>("cloud", 1);
-	m_pub_filledCloud = nh.advertise<sensor_msgs::PointCloud2>("cloud_filled", 1);
+	m_pub_cloud = nh.advertise<sensor_msgs::PointCloud2>("depth_registered/points", 1);
 
 	NODELET_INFO("Starting streaming...");
 	m_thread = boost::thread(boost::bind(&XtionGrabber::read_thread, this));
@@ -440,13 +440,6 @@ void XtionGrabber::read_thread()
 			if(m_pub_cloud.getNumSubscribers() != 0)
 				publishPointCloud(m_lastDepthImage, &m_cloudGenerator, &m_pub_cloud);
 
-			if(m_pub_filledCloud.getNumSubscribers() != 0)
-			{
-				sensor_msgs::ImagePtr filledDepth = m_depthFiller.fillDepth(
-					m_lastDepthImage, m_lastColorImage
-				);
-				publishPointCloud(filledDepth, &m_filledCloudGenerator, &m_pub_filledCloud);
-			}
 		}
 	}
 
@@ -521,7 +514,8 @@ void XtionGrabber::publishPointCloud(const sensor_msgs::ImageConstPtr& depth,
 	sensor_msgs::PointCloud2::Ptr cloud = m_pointCloudPool->create();
 
 	cloud->header.stamp = m_lastColorImage->header.stamp;
-	cloud->header.frame_id = "/camera_optical";
+
+	cloud->header.frame_id = m_nodeName + "_rgb_optical_frame";
 
 	cloud->fields.resize(4);
 	cloud->fields[0].name = "x";

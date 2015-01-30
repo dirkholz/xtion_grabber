@@ -74,7 +74,7 @@ XtionGrabber::~XtionGrabber()
 
 bool XtionGrabber::setupDepth(const std::string& device)
 {
-	ros::NodeHandle depth_nh(getPrivateNodeHandle(), "depth");
+	ros::NodeHandle depth_nh(getPrivateNodeHandle(), "depth_registered");
 
 	m_depth_it.reset(new image_transport::ImageTransport(depth_nh));
 

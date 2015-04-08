@@ -290,7 +290,7 @@ sensor_msgs::ImagePtr XtionGrabber::createDepthImage()
 	img->height = m_depthHeight;
 	img->step = img->width * 2;
 	img->data.resize(img->step * img->height);
-	img->header.frame_id = "/camera_optical";
+  	img->header.frame_id = m_nodeName + "_rgb_optical_frame";
 
 	return img;
 }
@@ -351,7 +351,7 @@ void XtionGrabber::read_thread()
 			img->step = img->width * 4;
 			img->data.resize(img->step * img->height);
 			img->header.stamp = timeFromTimeval(buf.timestamp);
-			img->header.frame_id = "/camera_optical";
+			img->header.frame_id = m_nodeName + "_rgb_optical_frame";
 
 			img->encoding = sensor_msgs::image_encodings::BGRA8;
 
@@ -573,7 +573,7 @@ void XtionGrabber::setupRGBInfo()
 		m_color_info.P[10] = 1.0;
 	}
 
-	m_color_info.header.frame_id = m_deviceName + "/rgb_optical";
+	m_color_info.header.frame_id = m_deviceName + "_rgb_optical_frame";
 }
 
 void XtionGrabber::setupDepthInfo()
@@ -639,7 +639,7 @@ void XtionGrabber::setupDepthInfo()
 		m_depth_info.P[10] = 1.0;
 	}
 
-	m_depth_info.header.frame_id = m_deviceName + "/rgb_optical";
+	m_depth_info.header.frame_id = m_deviceName + "_rgb_optical_frame";
 }
 
 }

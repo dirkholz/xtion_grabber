@@ -255,6 +255,8 @@ void XtionGrabber::onInit()
 	nh.param("color_width", m_colorWidth, 1280);
 	nh.param("color_height", m_colorHeight, 1024);
 
+	nh.param("calibration_mode", m_calibrationMode, false);
+
 	m_deviceName = getPrivateNodeHandle().getNamespace();
 	m_nodeName = ros::this_node::getName();
 
@@ -290,7 +292,7 @@ sensor_msgs::ImagePtr XtionGrabber::createDepthImage()
 	img->height = m_depthHeight;
 	img->step = img->width * 2;
 	img->data.resize(img->step * img->height);
-  	img->header.frame_id = m_nodeName + "_rgb_optical_frame";
+  img->header.frame_id = m_depth_info.header.frame_id;
 
 	return img;
 }
@@ -351,7 +353,7 @@ void XtionGrabber::read_thread()
 			img->step = img->width * 4;
 			img->data.resize(img->step * img->height);
 			img->header.stamp = timeFromTimeval(buf.timestamp);
-			img->header.frame_id = m_nodeName + "_rgb_optical_frame";
+			img->header.frame_id = m_color_info.header.frame_id;
 
 			img->encoding = sensor_msgs::image_encodings::BGRA8;
 
@@ -388,7 +390,10 @@ void XtionGrabber::read_thread()
 			m_lastColorSeq = buf.sequence;
 
 			m_color_info.header.stamp = img->header.stamp;
-			m_pub_color.publish(img, boost::make_shared<sensor_msgs::CameraInfo>(m_color_info));
+      			if(m_pub_color.getNumSubscribers() != 0)
+      			{
+      				m_pub_color.publish(img, boost::make_shared<sensor_msgs::CameraInfo>(m_color_info));
+      			}
 
 			if(ioctl(m_color_fd, VIDIOC_QBUF, &buffer->buf) != 0)
 			{
@@ -420,7 +425,10 @@ void XtionGrabber::read_thread()
 			m_lastDepthSeq = buf.sequence;
 
 			m_depth_info.header.stamp = buffer->image->header.stamp;
-			m_pub_depth.publish(buffer->image, boost::make_shared<sensor_msgs::CameraInfo>(m_depth_info));
+      			if(m_pub_depth.getNumSubscribers() != 0)
+      			{
+        			m_pub_depth.publish(buffer->image, boost::make_shared<sensor_msgs::CameraInfo>(m_depth_info));
+      			}
 
 			buffer->image.reset();
 
@@ -437,11 +445,12 @@ void XtionGrabber::read_thread()
 		if(m_lastColorSeq == m_lastDepthSeq)
 		{
 			if(m_pub_cloud.getNumSubscribers() != 0)
+      			{
 				publishPointCloud(m_lastDepthImage, &m_cloudGenerator, &m_pub_cloud);
-
+      			}
 		}
 	}
-
+  
 	fprintf(stderr, "read thread exit now\n");
 }
 
@@ -456,7 +465,7 @@ void XtionGrabber::publishPointCloud(const sensor_msgs::ImageConstPtr& depth,
 
 	cloud->header.stamp = m_lastColorImage->header.stamp;
 
-	cloud->header.frame_id = m_nodeName + "_rgb_optical_frame";
+	cloud->header.frame_id = m_color_info.header.frame_id;
 
 	cloud->fields.resize(4);
 	cloud->fields[0].name = "x";
@@ -574,6 +583,10 @@ void XtionGrabber::setupRGBInfo()
 	}
 
 	m_color_info.header.frame_id = m_deviceName + "_rgb_optical_frame";
+	if (m_calibrationMode)
+	{
+		m_color_info.header.frame_id = m_deviceName + "_rgb_optical_frame_CALIBRATION";
+	}
 }
 
 void XtionGrabber::setupDepthInfo()
@@ -640,6 +653,12 @@ void XtionGrabber::setupDepthInfo()
 	}
 
 	m_depth_info.header.frame_id = m_deviceName + "_rgb_optical_frame";
+	if (m_calibrationMode)
+	{
+		m_depth_info.header.frame_id = m_deviceName + "_rgb_optical_frame_CALIBRATION";
+	}
+
+
 }
 
 }

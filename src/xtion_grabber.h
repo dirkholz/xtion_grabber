@@ -46,6 +46,8 @@ private:
 
 	std::string m_deviceName;
 
+	bool m_calibrationMode;
+
 	////////////////////////////////////////////////////////////////////////////
 	// Camera info
 	void setupRGBInfo();

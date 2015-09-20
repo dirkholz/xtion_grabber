@@ -46,7 +46,7 @@ private:
 
 	std::string m_deviceName;
 
-	bool m_calibrationMode;
+    std::string m_tfprefix;
 
 	////////////////////////////////////////////////////////////////////////////
 	// Camera info

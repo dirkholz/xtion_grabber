@@ -11,5 +11,7 @@
 
     <param name="color_width" value="640" />
     <param name="color_height" value="480" />
+    
+    <param name="tf_prefix" value="" />
   </node>
 </launch>

@@ -254,8 +254,8 @@ void XtionGrabber::onInit()
 	nh.param("depth_height", m_depthHeight, 480);
 	nh.param("color_width", m_colorWidth, 1280);
 	nh.param("color_height", m_colorHeight, 1024);
-
-	nh.param("calibration_mode", m_calibrationMode, false);
+    // tf prefix
+    nh.param<std::string>("tf_prefix", m_tfprefix, "");
 
 	m_deviceName = getPrivateNodeHandle().getNamespace();
 	m_nodeName = ros::this_node::getName();
@@ -582,11 +582,8 @@ void XtionGrabber::setupRGBInfo()
 		m_color_info.P[10] = 1.0;
 	}
 
-	m_color_info.header.frame_id = m_deviceName + "_rgb_optical_frame";
-	if (m_calibrationMode)
-	{
-		m_color_info.header.frame_id = m_deviceName + "_rgb_optical_frame_CALIBRATION";
-	}
+	if (m_tfprefix.empty()) m_color_info.header.frame_id = m_deviceName + "_rgb_optical_frame";
+	else m_color_info.header.frame_id = m_tfprefix + m_deviceName + "_rgb_optical_frame";
 }
 
 void XtionGrabber::setupDepthInfo()
@@ -652,13 +649,8 @@ void XtionGrabber::setupDepthInfo()
 		m_depth_info.P[10] = 1.0;
 	}
 
-	m_depth_info.header.frame_id = m_deviceName + "_rgb_optical_frame";
-	if (m_calibrationMode)
-	{
-		m_depth_info.header.frame_id = m_deviceName + "_rgb_optical_frame_CALIBRATION";
-	}
-
-
+	if (m_tfprefix.empty()) m_depth_info.header.frame_id = m_deviceName + "_rgb_optical_frame";
+	else m_depth_info.header.frame_id = m_tfprefix + m_deviceName + "_rgb_optical_frame";
 }
 
 }

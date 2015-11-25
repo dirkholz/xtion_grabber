@@ -10,6 +10,7 @@
 
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/PointCloud2.h>
+#include <std_srvs/Trigger.h>
 
 #include <camera_info_manager/camera_info_manager.h>
 
@@ -26,99 +27,111 @@ const int NUM_BUFS = 31;
 namespace xtion_grabber
 {
 
-class XtionGrabber : public nodelet::Nodelet
-{
-public:
-	XtionGrabber();
-	virtual ~XtionGrabber();
+  class XtionGrabber : public nodelet::Nodelet
+  {
+    public:
+      XtionGrabber();
+      virtual ~XtionGrabber();
 
-	virtual void onInit();
-private:
-	////////////////////////////////////////////////////////////////////////////
-	// Parameters
-	int m_depthWidth;
-	int m_depthHeight;
-	int m_colorWidth;
-	int m_colorHeight;
+      virtual void onInit();
+    private:
+      ////////////////////////////////////////////////////////////////////////////
+      // Parameters
+      int m_depthWidth;
+      int m_depthHeight;
+      int m_colorWidth;
+      int m_colorHeight;
 
-	double m_depthFocalLength;
-	double m_colorFocalLength;
+      double m_depthFocalLength;
+      double m_colorFocalLength;
 
-	std::string m_deviceName;
+      std::string m_deviceName;
 
-    std::string m_tfprefix;
+      std::string m_tfprefix;
+      ////////////////////////////////////////////////////////////////////////////
+      // ROS services
+      bool toggleService(std_srvs::TriggerRequest &req, std_srvs::TriggerResponse &res);
+      void init();
 
-	////////////////////////////////////////////////////////////////////////////
-	// Camera info
-	void setupRGBInfo();
-	void setupDepthInfo();
+      ////////////////////////////////////////////////////////////////////////////
+      // Camera info
+      void setupRGBInfo();
+      void setupDepthInfo();
 
-	////////////////////////////////////////////////////////////////////////////
-	// Depth channel
-	bool setupDepth(const std::string& device);
-	void stopDepth();
+      ////////////////////////////////////////////////////////////////////////////
+      // Depth channel
+      bool setupDepth(const std::string& device);
+      bool startDepth();
+      bool stopDepth();
 
-	sensor_msgs::ImagePtr createDepthImage();
+      sensor_msgs::ImagePtr createDepthImage();
 
-	struct DepthBuffer
-	{
-		sensor_msgs::ImagePtr image;
-		v4l2_buffer buf;
-	};
-	DepthBuffer m_depth_buffers[NUM_BUFS];
+      struct DepthBuffer
+      {
+          sensor_msgs::ImagePtr image;
+          v4l2_buffer buf;
+      };
+      DepthBuffer m_depth_buffers[NUM_BUFS];
 
-	int m_depth_fd;
+      int m_depth_fd;
 
-	boost::shared_ptr<image_transport::ImageTransport> m_depth_it;
-	sensor_msgs::CameraInfo m_depth_info;
-	image_transport::CameraPublisher m_pub_depth;
-	utils::Pool<sensor_msgs::Image>::Ptr m_depth_pool;
+      boost::shared_ptr<image_transport::ImageTransport> m_depth_it;
+      sensor_msgs::CameraInfo m_depth_info;
+      image_transport::CameraPublisher m_pub_depth;
+      utils::Pool<sensor_msgs::Image>::Ptr m_depth_pool;
 
-	boost::shared_ptr<camera_info_manager::CameraInfoManager> m_depth_infoMgr;
+      boost::shared_ptr<camera_info_manager::CameraInfoManager> m_depth_infoMgr;
 
-	////////////////////////////////////////////////////////////////////////////
-	// Color channel
-	bool setupColor(const std::string& device);
-	void stopColor();
+      ////////////////////////////////////////////////////////////////////////////
+      // Color channel
+      bool setupColor(const std::string& device);
+      bool startColor();
+      bool stopColor();
 
-	struct ColorBuffer
-	{
-		v4l2_buffer buf;
-		std::vector<uint8_t> data;
-	};
-	ColorBuffer m_color_buffers[NUM_BUFS];
+      struct ColorBuffer
+      {
+          v4l2_buffer buf;
+          std::vector<uint8_t> data;
+      };
+      ColorBuffer m_color_buffers[NUM_BUFS];
 
-	int m_color_fd;
+      int m_color_fd;
 
-	boost::shared_ptr<image_transport::ImageTransport> m_color_it;
-	sensor_msgs::CameraInfo m_color_info;
-	image_transport::CameraPublisher m_pub_color;
-	utils::Pool<sensor_msgs::Image>::Ptr m_color_pool;
+      boost::shared_ptr<image_transport::ImageTransport> m_color_it;
+      sensor_msgs::CameraInfo m_color_info;
+      image_transport::CameraPublisher m_pub_color;
+      utils::Pool<sensor_msgs::Image>::Ptr m_color_pool;
 
-	boost::shared_ptr<camera_info_manager::CameraInfoManager> m_color_infoMgr;
+      boost::shared_ptr<camera_info_manager::CameraInfoManager> m_color_infoMgr;
 
-	////////////////////////////////////////////////////////////////////////////
-	// PointCloud generation
-	uint64_t m_lastColorSeq;
-	sensor_msgs::ImageConstPtr m_lastColorImage;
+      ////////////////////////////////////////////////////////////////////////////
+      // PointCloud generation
+      uint64_t m_lastColorSeq;
+      sensor_msgs::ImageConstPtr m_lastColorImage;
 
-	uint64_t m_lastDepthSeq;
-	sensor_msgs::ImageConstPtr m_lastDepthImage;
+      uint64_t m_lastDepthSeq;
+      sensor_msgs::ImageConstPtr m_lastDepthImage;
 
-	accel::PointCloudGenerator m_cloudGenerator;
-	ros::Publisher m_pub_cloud;
-	utils::Pool<sensor_msgs::PointCloud2>::Ptr m_pointCloudPool;
+      accel::PointCloudGenerator m_cloudGenerator;
+      ros::Publisher m_pub_cloud;
+      utils::Pool<sensor_msgs::PointCloud2>::Ptr m_pointCloudPool;
 
-	void publishPointCloud(const sensor_msgs::ImageConstPtr& depth,
-	                       accel::PointCloudGenerator* generator,
-	                       ros::Publisher* dest);
+      void publishPointCloud(const sensor_msgs::ImageConstPtr& depth,
+                             accel::PointCloudGenerator* generator,
+                             ros::Publisher* dest);
 
-	void read_thread();
+      void read_thread();
 
-	boost::thread m_thread;
-	bool m_shouldExit;
-	std::string m_nodeName;
-};
+      boost::thread m_thread;
+      bool m_shouldExit;
+
+      std::string m_depthDevice;
+      std::string m_colorDevice;
+      std::string m_nodeName;
+      boost::mutex m_cameraMux;
+      bool m_cameraOn;
+      ros::ServiceServer m_toggleService;
+  };
 
 }
 

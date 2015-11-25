@@ -82,7 +82,7 @@ bool XtionGrabber::toggleService(std_srvs::TriggerRequest &req, std_srvs::Trigge
         //Turn camera on
         ros::Time start = ros::Time::now();
         init();
-        NODELET_INFO_STREAM("Camera stream started in: " << (ros::Time::now()-start).toSec() << " secs.");
+        NODELET_INFO_STREAM("[" << m_deviceName << "] Camera stream started in: " << (ros::Time::now()-start).toSec() << " secs.");
         m_cameraOn = !m_cameraOn;
         m_cameraMux.unlock();
         res.success = true;
@@ -271,8 +271,8 @@ void XtionGrabber::onInit()
     nh.param("depth_height", m_depthHeight, 480);
     nh.param("color_width", m_colorWidth, 1280);
     nh.param("color_height", m_colorHeight, 1024);
-    bool initial_state;
-    nh.param("initial_state_on", initial_state, false);
+    //bool initial_state;
+    //nh.param("initial_state_on", initial_state, false);
     // tf prefix
     nh.param<std::string>("tf_prefix", m_tfprefix, "");
 
@@ -300,12 +300,12 @@ void XtionGrabber::onInit()
     m_thread = boost::thread(boost::bind(&XtionGrabber::read_thread, this));
 
     NODELET_INFO_STREAM("[" << m_deviceName << "] Initialized correctly");
-    if(!initial_state)
+    /*if(!initial_state)
     {
         NODELET_INFO_STREAM("[" << m_deviceName << "] Going into idle mode");
         std_srvs::Trigger msg;
         toggleService(msg.request, msg.response);
-    }
+    }*/
 }
 
 void XtionGrabber::init()
@@ -364,6 +364,9 @@ void XtionGrabber::read_thread()
     fd_set fds;
 
     m_cameraMux.lock();
+    ros::Time counter = ros::Time::now();
+    ros::Duration timeout(2.0);
+
     while(!m_shouldExit && ros::ok())
     {
         //NODELET_INFO_THROTTLE(1, "publishing");
@@ -442,6 +445,7 @@ void XtionGrabber::read_thread()
             if(m_pub_color.getNumSubscribers() != 0)
             {
                 m_pub_color.publish(img, boost::make_shared<sensor_msgs::CameraInfo>(m_color_info));
+                counter = ros::Time::now();
             }
 
             if(ioctl(m_color_fd, VIDIOC_QBUF, &buffer->buf) != 0)
@@ -476,6 +480,7 @@ void XtionGrabber::read_thread()
             m_depth_info.header.stamp = buffer->image->header.stamp;
             if(m_pub_depth.getNumSubscribers() != 0)
             {
+                counter = ros::Time::now();
                 m_pub_depth.publish(buffer->image, boost::make_shared<sensor_msgs::CameraInfo>(m_depth_info));
             }
 
@@ -496,7 +501,24 @@ void XtionGrabber::read_thread()
         {
             if(m_pub_cloud.getNumSubscribers() != 0)
             {
+                counter = ros::Time::now();
                 publishPointCloud(m_lastDepthImage, &m_cloudGenerator, &m_pub_cloud);
+            }
+        }
+        //Automatically go into idle mode if timeout is reached without subscribers
+        if(ros::Time::now()-counter>timeout)
+        {
+            NODELET_INFO_STREAM("[" << m_deviceName << "] No subscribers. Going into idle mode");
+            std_srvs::Trigger msg;
+            toggleService(msg.request, msg.response);
+            while(!m_pub_cloud.getNumSubscribers() && !m_pub_depth.getNumSubscribers() && !m_pub_color.getNumSubscribers() && ros::ok())
+            {
+                ros::Duration(0.1).sleep();
+            }
+            if(ros::ok())
+            {
+                counter = ros::Time::now();
+                toggleService(msg.request, msg.response);
             }
         }
         m_cameraMux.lock();

@@ -64,8 +64,7 @@ XtionGrabber::XtionGrabber()
 XtionGrabber::~XtionGrabber()
 {
     m_shouldExit = true;
-    if(!m_cameraMux.try_lock())
-        m_cameraMux.unlock();
+    m_cameraMux.unlock();
     m_thread.join();
     if(m_cameraOn)
     {
@@ -78,13 +77,13 @@ XtionGrabber::~XtionGrabber()
 
 bool XtionGrabber::toggleService(std_srvs::TriggerRequest &req, std_srvs::TriggerResponse &res)
 {
-    m_cameraOn = !m_cameraOn;
-    if(m_cameraOn)
+    if(!m_cameraOn)
     {
         //Turn camera on
         ros::Time start = ros::Time::now();
         init();
         NODELET_INFO_STREAM("Camera stream started in: " << (ros::Time::now()-start).toSec() << " secs.");
+        m_cameraOn = !m_cameraOn;
         m_cameraMux.unlock();
         res.success = true;
         res.message = "Camera on";
@@ -93,6 +92,7 @@ bool XtionGrabber::toggleService(std_srvs::TriggerRequest &req, std_srvs::Trigge
     {
         //Turn camera off
         m_cameraMux.lock();
+        m_cameraOn = !m_cameraOn;
         if(!stopColor())
             NODELET_WARN("Could not stop color streaming");
         if(!stopDepth())
@@ -271,6 +271,8 @@ void XtionGrabber::onInit()
     nh.param("depth_height", m_depthHeight, 480);
     nh.param("color_width", m_colorWidth, 1280);
     nh.param("color_height", m_colorHeight, 1024);
+    bool initial_state;
+    nh.param("initial_state_on", initial_state, false);
     // tf prefix
     nh.param<std::string>("tf_prefix", m_tfprefix, "");
 
@@ -295,9 +297,15 @@ void XtionGrabber::onInit()
 
     m_toggleService = nh.advertiseService("toggle", &XtionGrabber::toggleService, this);
 
-    NODELET_INFO_STREAM("[" << m_deviceName << "] Start streaming");
-
     m_thread = boost::thread(boost::bind(&XtionGrabber::read_thread, this));
+
+    NODELET_INFO_STREAM("[" << m_deviceName << "] Initialized correctly");
+    if(!initial_state)
+    {
+        NODELET_INFO_STREAM("[" << m_deviceName << "] Going into idle mode");
+        std_srvs::Trigger msg;
+        toggleService(msg.request, msg.response);
+    }
 }
 
 void XtionGrabber::init()
@@ -356,7 +364,7 @@ void XtionGrabber::read_thread()
     fd_set fds;
 
     m_cameraMux.lock();
-    while(!m_shouldExit)
+    while(!m_shouldExit && ros::ok())
     {
         //NODELET_INFO_THROTTLE(1, "publishing");
         FD_ZERO(&fds);
@@ -493,8 +501,8 @@ void XtionGrabber::read_thread()
         }
         m_cameraMux.lock();
     }
-
-    NODELET_INFO("[read_thread] exit");
+    m_cameraMux.unlock();
+    std::cout << "[read_thread] exit\n";
 }
 
 void XtionGrabber::publishPointCloud(const sensor_msgs::ImageConstPtr& depth,

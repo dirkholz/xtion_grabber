@@ -9,7 +9,7 @@ if [ ! -d "${module_dir}" ]; then
     mkdir -p ${module_dir} && git clone ${module_git} ${module_dir} && git checkout develop
 else
     echo "Directory  ${module_dir} already exists. Updating ..."
-    cd ${module_dir} && git pull
+    cd ${module_dir} && git checkout develop && git pull
 fi
 
 echo "Compiling and installing the xtion kernel module"
